@@ -9,6 +9,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.checkpoint.memory import InMemorySaver
 
 from dotenv import load_dotenv
 import random
@@ -74,14 +75,16 @@ graph = graph_builder.compile()
 graph_builder.add_edge(START, "chatbot")
 graph_builder.add_edge("chatbot", END)
 
-graph = graph_builder.compile()
+memory = InMemorySaver()
+graph = graph_builder.compile(checkpointer=memory)
 
 old_messages = []
+config = {"configurable": {"thread_id": "1"}}
 for _ in range(10):  # You can change 3 to any number of iterations you want
     user_input = input("User: ")
     if old_messages:
-        state = graph.invoke({"messages": old_messages + [{"role": "user", "content": user_input}]})
+        state = graph.invoke({"messages": old_messages + [{"role": "user", "content": user_input}]},config=config)
     else:
-        state = graph.invoke({"messages": [{"role": "user", "content": user_input}]})
+        state = graph.invoke({"messages": [{"role": "user", "content": user_input}]},config=config)
     print(state)
     old_messages = state["messages"]
